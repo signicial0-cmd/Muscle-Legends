@@ -1,0 +1,1654 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Robojini/Tuturial_UI_Library/main/UI_Template_1", true))()
+local Window = Library.CreateLib("zetka hub | paid version", "RJTheme3")
+
+local Tab = Window:NewTab("Credits")
+
+local Section = Tab:NewSection("Information")
+
+Section:NewLabel("Script made by Zerquesth & Amigo")
+
+Section:NewLabel("zetka hub | paid version cost 350₱ / 500 rbx")
+
+Section:NewLabel("Join to my russian discord server! 😝")
+
+Section:NewButton("Click to Copy Discord Link", "Приглашаем в дискорд сервер, там вся информация про нас и скрипты!", function()
+    setclipboard("https://discord.gg/bQnXyAYTzF")
+    print("Ссылка на Discord скопирована в буфер обмена! 📋")
+end)
+
+local a = game:GetService("ReplicatedStorage")
+local b = game:GetService("Players")
+local c = b.LocalPlayer
+
+local Tab = Window:NewTab("Main")
+
+local Section = Tab:NewSection("Rebirths Folder")
+
+local toggleLoop = nil
+Section:NewToggle("Auto Lift", "Описание", function(state)
+    if state then
+        toggleLoop = task.spawn(function()
+            while true do
+                game.Players.LocalPlayer:WaitForChild("muscleEvent"):FireServer("rep")
+                task.wait(0.1)
+            end
+        end)
+    else
+        if toggleLoop then
+            task.cancel(toggleLoop)  -- Останавливаем цикл
+            toggleLoop = nil
+        end
+    end
+end)
+
+Section:NewToggle("Auto Normal Rebirth", "Автоматически делает ребирт", function(state)
+    autoRebirthEnabled = state
+    
+    if state then
+        print("♻️ Авто-Ребирт: ВКЛ (запуск цикла)")
+        
+        local player = game:GetService("Players").LocalPlayer
+        local rebirthConnection
+        local deathConnection
+
+        -- Основная функция ребирта
+        local function doRebirth()
+            if autoRebirthEnabled then
+                game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("rebirthRemote"):InvokeServer("rebirthRequest")
+            end
+        end
+
+        -- Цикл ребиртов (с интервалом 0.1 сек)
+        rebirthConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            if autoRebirthEnabled then
+                doRebirth()
+            end
+        end)
+
+        -- Авто-переподключение после смерти
+        local function setupRespawn()
+            if player.Character then
+                deathConnection = player.Character.Humanoid.Died:Connect(function()
+                    print("💀 Смерть → перезапуск авто-ребирта через 0.5 сек...")
+                    task.wait(0.5)
+                    if autoRebirthEnabled then
+                        rebirthConnection = game:GetService("RunService").Heartbeat:Connect(doRebirth)
+                    end
+                end)
+            end
+        end
+
+        setupRespawn()
+        player.CharacterAdded:Connect(setupRespawn)
+        
+    else
+        print("♻️ Авто-Ребирт: ВЫКЛ 🚫")
+        if rebirthConnection then rebirthConnection:Disconnect() end
+        if deathConnection then deathConnection:Disconnect() end
+    end
+end)
+
+Section:NewToggle("Auto Weight", "Автоматически берет и качает Weight", function(state)
+    autoWeightEnabled = state
+    
+    if state then
+        print("⚖️ Авто-вес: АКТИВИРОВАН")
+        
+        local weightLoop
+        local deathConnection
+        local characterAddedConnection
+        local player = game:GetService("Players").LocalPlayer
+        
+        -- Улучшенная функция экипировки
+        local function equipWeight()
+            local character = player.Character
+            if not character or not character:FindFirstChild("Humanoid") then return false end
+            
+            local humanoid = character:FindFirstChild("Humanoid")
+            local weightTool = player.Backpack:FindFirstChild("Weight") or character:FindFirstChild("Weight")
+            
+            if weightTool and weightTool:IsA("Tool") then
+                -- Если Weight в бэкпаке - экипируем
+                if weightTool.Parent == player.Backpack then
+                    humanoid:EquipTool(weightTool)
+                    task.wait(0.2) -- Даем время на экипировку
+                end
+                return true
+            end
+            return false
+        end
+        
+        -- Основной цикл активации
+        local function activateWeight()
+            while autoWeightEnabled and task.wait(0.2) do
+                if player.Character and player.Character:FindFirstChild("Humanoid") then
+                    -- Постоянно пытаемся экипировать (на случай, если инструмент упал)
+                    equipWeight()
+                    
+                    local tool = player.Character:FindFirstChild("Weight")
+                    if tool and tool:IsA("Tool") then
+                        tool:Activate()
+                    end
+                end
+            end
+        end
+        
+        -- Обработчик смерти персонажа
+        local function onCharacterAdded(character)
+            if deathConnection then deathConnection:Disconnect() end
+            
+            deathConnection = character:WaitForChild("Humanoid").Died:Connect(function()
+                print("💀 Смерть - перезапуск через 1.5 сек...")
+                if weightLoop then task.cancel(weightLoop) end
+                
+                task.wait(1.5) -- Увеличенное время для респавна
+                
+                if autoWeightEnabled then
+                    -- Двойная проверка после респавна
+                    task.wait(0.5)
+                    equipWeight()
+                    weightLoop = task.spawn(activateWeight)
+                end
+            end)
+            
+            if autoWeightEnabled then
+                task.wait(1) -- Увеличенное время для полной загрузки персонажа
+                equipWeight()
+                weightLoop = task.spawn(activateWeight)
+            end
+        end
+        
+        -- Первоначальная настройка
+        if player.Character then
+            onCharacterAdded(player.Character)
+        end
+        
+        -- Подключаем обработчик нового персонажа
+        characterAddedConnection = player.CharacterAdded:Connect(onCharacterAdded)
+        
+    else
+        -- Деактивация
+        print("⚖️ Авто-вес: ДЕАКТИВИРОВАН 🚫")
+        if weightLoop then task.cancel(weightLoop) end
+        if deathConnection then deathConnection:Disconnect() end
+        if characterAddedConnection then characterAddedConnection:Disconnect() end
+    end
+end)
+
+Section:NewToggle("Auto Size 2", "ToggleInfo", function(state)
+    autoSizeEnabled = state
+    
+    if state then
+        print("📏 Авто-размер 2x: АКТИВИРОВАН (ожидание персонажа)")
+        
+        local player = game.Players.LocalPlayer
+        local sizeLoop
+        local deathConnection
+
+        -- Основной цикл изменения размера
+        local function changeSize()
+            while autoSizeEnabled do
+                game:GetService("ReplicatedStorage").rEvents.changeSpeedSizeRemote:InvokeServer("changeSize", 2)
+                task.wait()
+            end
+        end
+
+        -- Авто-переподключение после смерти
+        local function setupRespawn()
+            if player.Character then
+                deathConnection = player.Character.Humanoid.Died:Connect(function()
+                    print("💀 Смерть → перезапуск изменения размера через 0.5 сек...")
+                    if sizeLoop then task.cancel(sizeLoop) end
+                    task.wait(0.5)
+                    if autoSizeEnabled then
+                        sizeLoop = task.spawn(changeSize)
+                    end
+                end)
+            end
+        end
+
+        -- Старт основного цикла
+        sizeLoop = task.spawn(changeSize)
+        setupRespawn()
+        player.CharacterAdded:Connect(setupRespawn)
+        
+    else
+        print("📏 Авто-размер 2x: ДЕАКТИВИРОВАН 🚫")
+        if sizeLoop then task.cancel(sizeLoop) end
+        if deathConnection then deathConnection:Disconnect() end
+    end
+end)
+
+local autoEquip = false
+local connection = nil
+
+local Section = Tab:NewSection("Kill stuff")
+
+-- Auto Normal Punch (с поддержкой респавна)
+local punchActive = false
+local punchConnection = nil
+
+Section:NewToggle("Auto Normal Punch", "Автоматические обычные удары (работает после смерти)", function(state)
+    punchActive = state
+    
+    -- Удаляем предыдущее подключение, если было
+    if punchConnection then
+        punchConnection:Disconnect()
+        punchConnection = nil
+    end
+    
+    if state then
+        local player = game.Players.LocalPlayer
+        
+        local function startPunch()
+            local char = player.Character or player.CharacterAdded:Wait()
+            
+            while punchActive and char and char:IsDescendantOf(workspace) do
+                local punchTool = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                
+                if punchTool then
+                    -- Авто-экипировка
+                    if punchTool.Parent ~= char then
+                        char:WaitForChild("Humanoid"):EquipTool(punchTool)
+                        task.wait(0.1) -- Даем время на экипировку
+                    end
+                    
+                    -- Активация удара с обычной скоростью
+                    punchTool:Activate()
+                end
+                task.wait(0.35) -- Интервал между ударами (можно регулировать)
+            end
+        end
+        
+        -- Запускаем сразу и при каждом респавне
+        punchConnection = player.CharacterAdded:Connect(function()
+            if punchActive then
+                task.wait(0.5) -- Даем время на появление персонажа
+                startPunch()
+            end
+        end)
+        
+        startPunch() -- Первый запуск
+    end
+end)
+
+local autoKill = false
+local connection = nil
+
+-- Функция для атаки
+local function attackPlayers()
+    local player = game.Players.LocalPlayer
+    
+    -- Настройка быстрой атаки
+    local punch = player.Backpack:FindFirstChild("Punch") or (player.Character and player.Character:FindFirstChild("Punch"))
+    if punch and punch:FindFirstChild("attackTime") then
+        punch.attackTime.Value = 0.065
+    end
+    
+    -- Атака всех игроков
+    for _, target in ipairs(game.Players:GetPlayers()) do
+        if target ~= player then
+            local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+            local rHand = player.Character and player.Character:FindFirstChild("RightHand")
+            local lHand = player.Character and player.Character:FindFirstChild("LeftHand")
+            
+ if root and rHand and lHand then
+                firetouchinterest(rHand, root, 1)
+                firetouchinterest(lHand, root, 1)
+                firetouchinterest(rHand, root, 0)
+                firetouchinterest(lHand, root, 0)
+            end
+        end
+    end
+end
+
+Section:NewToggle("Auto Kill", "Automatically attacks all players", function(state)
+    autoKill = state
+    
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    if state then
+        -- Основной цикл атаки
+        connection = game:GetService("RunService").Heartbeat:Connect(attackPlayers)
+        
+        -- Обработчик возрождения
+        game.Players.LocalPlayer.CharacterAdded:Connect(function()
+            if autoKill then
+                task.wait(0.5) -- Небольшая задержка после возрождения
+                attackPlayers()
+            end
+        end)
+    end
+end)
+
+local Section = Tab:NewSection("")
+
+-- Текстбокс для ввода ника цели
+Section:NewTextBox("Target Player", "Enter the player's name", function(text)
+    targetPlayerName = text
+end)
+
+Section:NewToggle("Auto Kill", "Automatically attacks the target player", function(state)
+    autoKill = state
+    
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    
+    if state then
+        -- Основной цикл атаки
+        connection = game:GetService("RunService").Heartbeat:Connect(attackPlayers)
+        
+        -- Обработчик возрождения
+        game.Players.LocalPlayer.CharacterAdded:Connect(function()
+            if autoKill then
+                task.wait(0.5) -- Небольшая задержка после возрождения
+                attackPlayers()
+            end
+        end)
+    end
+end)
+
+local targetPlayerName = ""
+local cameraConnection = nil
+local cameraOffset = CFrame.new(0, 3, -8) -- Камера сзади и немного сверху
+
+-- Функция для обновления камеры
+local function updateThirdPersonCamera()
+    if not targetPlayerName or targetPlayerName == "" then return end
+    
+    local target = game.Players:FindFirstChild(targetPlayerName)
+    if target and target.Character then
+        local root = target.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local camera = game.Workspace.CurrentCamera
+            camera.CameraType = Enum.CameraType.Scriptable
+            
+            -- Камера следует за игроком, но остается позади него
+            local targetCFrame = root.CFrame
+            camera.CFrame = targetCFrame * cameraOffset
+        end
+    end
+end
+
+local Section = Tab:NewSection("")
+
+-- Текстбокс для ввода ника цели
+Section:NewTextBox("Spy player", "Enter player name to track", function(text)
+    -- Отключаем предыдущее соединение
+    if cameraConnection then
+        cameraConnection:Disconnect()
+        cameraConnection = nil
+    end
+    
+    targetPlayerName = text
+    
+    -- Включаем слежение, если введено имя
+    if text ~= "" then
+        cameraConnection = game:GetService("RunService").RenderStepped:Connect(updateThirdPersonCamera)
+    else
+        -- Возвращаем камеру в стандартный режим
+        game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    end
+end)
+
+-- Кнопка для остановки слежения
+Section:NewButton("Stop spy player", "Return to normal camera", function()
+    if cameraConnection then
+        cameraConnection:Disconnect()
+        cameraConnection = nil
+    end
+    game.Workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    targetPlayerName = ""
+end)
+
+local Tab = Window:NewTab("Paid tab")
+
+local Section = Tab:NewSection("")
+
+-- Функция для экипировки только "Swift Samurai" (без снятия ничего до этого)
+local function k()
+    for m, n in pairs(c.petsFolder.Unique:GetChildren()) do
+        if n.Name == "Swift Samurai" then
+            a.rEvents.equipPetEvent:FireServer("equipPet", n)
+        end
+    end
+end
+
+-- Флаг для управления циклом
+local isFarming = false
+
+Section:NewToggle("FAST STRENGTH (u need 7 new packs)", "ToggleInfo", function(state)
+    if state then
+        print("Toggle On")
+        k() -- Вызов функции на включение тумблера
+        isFarming = true -- Установите флаг в true
+
+        -- Основной цикл для быстрого получения Strength
+        task.spawn(function()
+            while isFarming do -- Проверяйте состояние флага
+                for y = 1, 22 do
+                    c.muscleEvent:FireServer("rep")
+                end
+                task.wait(0.001) -- Очень быстро
+            end
+        end)
+    else
+        print("Toggle Off")
+        isFarming = false -- Установите флаг в false, чтобы остановить цикл
+    end
+end)
+
+local rebirthActive = false
+
+Section:NewToggle("FAST REBIRTHS (u need 7 new packs)", "Fast Rebirths", function(state)
+    if state then
+        if not rebirthActive then
+            rebirthActive = true
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/0o0o0o0o0o0o0o0o0o0o0o0o/0o0o0o0o/refs/heads/main/Kk"))()
+            print("Fast Rebirths Active")
+        end
+    else
+        if rebirthActive then
+            rebirthActive = false
+            -- Здесь добавьте код для безопасного завершения или отмены эффекта Fast Rebirths, если это необходимо
+            print("Fast Rebirths Deactivated")
+        end
+    end
+end)
+
+local Tab = Window:NewTab("Glitching")
+
+local Section = Tab:NewSection("Rocks")
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Tiny Rock (0)", "Авто-режим ударов", function(state)
+    autoMode = state
+    
+    if state then
+        print("Авто-режим: АКТИВЕН 🟢 (Punch + удары)")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(17.6399956, -1.30998898, 2105.49121, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция для экипировки и ударов
+        local function setupAttackSystem(character)
+            -- Ждем пока персонаж полностью загрузится
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Функция экипировки
+            local function equipPunch()
+                local tool = player.Backpack:FindFirstChild(toolName)
+                if tool and not character:FindFirstChild(toolName) then
+                    tool.Parent = character
+                    tool:Equip()
+                    return true
+                end
+                return false
+            end
+            
+            -- Функция ударов
+            local function startAttacking()
+                if connections.attack then
+                    connections.attack:Disconnect()
+                end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента
+                        local punchTool = character:FindFirstChildOfClass("Tool") or character:FindFirstChild(toolName)
+                        if punchTool then
+                            punchTool:Activate()
+                            task.wait(0.01)
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик появления инструмента
+            local function onToolAdded(tool)
+                if tool:IsA("Tool") or tool.Name == toolName then
+                    startAttacking()
+                end
+            end
+            
+            -- Подключаем обработчики
+            connections.toolAdded = character.ChildAdded:Connect(onToolAdded)
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(0.5) -- Ждем возрождения
+                if autoMode then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttacking()
+            end
+        end
+        
+        -- Подключение для текущего персонажа
+        if player.Character then
+            setupAttackSystem(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupAttackSystem)
+        
+    else
+        print("Авто-режим: ВЫКЛЮЧЕН 🔴")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Punching Rock (10)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(-151.459747, 0.540015221, 422.589905, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Large Rock (100)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(166.639954, 0.540015221, -152.410172, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Golden rock (5.000)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(310.082153, -2.8099637, -594.586548, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Frost Rock (150.000)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(-2551.75854, -0.359962642, -243.308777, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Mystic Rock (400.000)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(2186.14111, -0.359961987, 1250.59802, 0.996191859, -0, -0.0871884301, 0, 1, -0, 0.0871884301, 0, 0.996191859)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Eternal Rock (750.000)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(-7262.18701, -0.359961987, -1259.24426, 1, 0, 0, 0, 1, 0, 0, 0, 1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Legend Rock (1.000.000)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(4140.41797, 987.453186, -4089.34937, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Muscle King Rock (5.000.000)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(-8971.56641, 27.4031715, -6061.27734, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local autoMode = false
+local connections = {}
+
+Section:NewToggle("Auto Jungle Rock (10.000.000)", "Авто-удары по координатам", function(state)
+    autoMode = state
+    
+    if state then
+        print("⚡ Активирован авто-режим ударов по координатам")
+        
+        local player = game.Players.LocalPlayer
+        local toolName = "Punch"
+        local targetCFrame = CFrame.new(-7611.20166, 32.4031715, 2909.97168, -1, 0, 0, 0, 1, 0, 0, 0, -1)
+        
+        -- Очистка предыдущих подключений
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+        
+        -- Основная функция управления персонажем
+        local function setupCharacter(character)
+            local humanoid = character:WaitForChild("Humanoid")
+            
+            -- Улучшенная функция экипировки
+            local function equipPunch()
+                local backpack = player:FindFirstChildOfClass("Backpack")
+                if backpack then
+                    local tool = backpack:FindFirstChild(toolName)
+                    if tool and not character:FindFirstChild(toolName) then
+                        tool.Parent = character
+                        tool:Equip()
+                        return true
+                    end
+                end
+                return false
+            end
+            
+            -- Функция атаки с телепортацией
+            local function startAttackLoop()
+                if connections.attack then connections.attack:Disconnect() end
+                
+                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
+                    if autoMode and character and character.PrimaryPart then
+                        -- Телепортация к цели
+                        character:SetPrimaryPartCFrame(targetCFrame)
+                        
+                        -- Поиск инструмента для атаки
+                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                            task.wait(0.01) -- Оптимальная задержка между ударами
+                        end
+                    end
+                end)
+            end
+            
+            -- Обработчик добавления инструмента
+            connections.toolAdded = character.ChildAdded:Connect(function(child)
+                if child.Name == toolName or child:IsA("Tool") then
+                    startAttackLoop()
+                end
+            end)
+            
+            -- Обработчик смерти персонажа
+            connections.died = humanoid.Died:Connect(function()
+                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
+                if autoMode and player.Character then
+                    equipPunch()
+                end
+            end)
+            
+            -- Первоначальная настройка
+            if equipPunch() then
+                startAttackLoop()
+            end
+        end
+        
+        -- Инициализация для текущего персонажа
+        if player.Character then
+            setupCharacter(player.Character)
+        end
+        
+        -- Подключение для новых персонажей
+        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
+        
+    else
+        print("❌ Авто-режим деактивирован")
+        for _, conn in pairs(connections) do
+            conn:Disconnect()
+        end
+        connections = {}
+    end
+end)
+
+local Tab = Window:NewTab("Teleport")
+
+local Section = Tab:NewSection("")
+
+Section:NewButton("Spawn", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(5.41369724, 7.32069302, 103.353584, 0.998408794, 1.33323566e-08, -0.0563899279, -1.14453016e-08, 1, 3.37873658e-08, 0.0563899279, -3.30882024e-08, 0.998408794)
+end)
+
+Section:NewButton("Secret Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(1947, 1.7988528, 6191, 1, -1.38381895e-09, 2.73059163e-14, 1.38381895e-09, 1, -4.17202584e-09, -2.73001429e-14, 4.17202584e-09, 1)
+end)
+
+Section:NewButton("Tiny Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-33.9999962, 7.47380733, 1903, 1, -3.2191803e-08, 4.68168527e-13, 3.2191803e-08, 1, -9.70561231e-08, -4.65044127e-13, 9.70561231e-08, 1)
+end)
+
+Section:NewButton("Frost Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-2623.02222, 7.32069302, -409.073334, -1.37775425e-13, 2.1388237e-08, 1, 1.76718853e-08, 1, -2.1388237e-08, -1, 1.76718853e-08, -1.38153405e-13)
+end)
+
+Section:NewButton("Purple Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(2316.8728, 7.32069254, 1083.15601, 0.356475145, -6.32208952e-08, -0.934304833, 9.51965546e-08, 1, -3.13448965e-08, 0.934304833, -7.77689237e-08, 0.356475145)
+end)
+
+Section:NewButton("Eternal Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-6758.96387, 7.32070589, -1284.9187, 3.68920965e-15, 3.28636962e-09, 1, 4.94521082e-08, 1, -3.28636962e-09, -1, 4.94521082e-08, 3.52669177e-15)
+end)
+
+Section:NewButton("Legends Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(4603.28174, 991.49707, -3897.86572, -0.173624292, 5.4785918e-08, 0.984811962, 2.12412345e-08, 1, -5.18859693e-08, -0.984811962, 1.19099584e-08, -0.173624292)
+end)
+
+Section:NewButton("Muscle King Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-8748.88184, 27.2870579, -5857.51807, 0.979979336, 1.53297641e-08, 0.199099228, -9.27019528e-09, 1, -3.13670938e-08, -0.199099228, 2.88934139e-08, 0.979979336)
+end)
+
+Section:NewButton("Jungle Island", "ButtonInfo", function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(-8685.62109, 6.74931479, 2392.32666, 4.55405274e-15, 6.11310058e-10, -1, -4.45797982e-10, 1, 6.11310058e-10, 1, 4.45797982e-10, 4.55432548e-15)
+end)
+
+local Tab = Window:NewTab("Misc")
+
+local Section = Tab:NewSection("")
+
+Section:NewToggle("Walk on water", "Создает платформу на всю карту", function(state)
+    if state then
+        -- Включаем платформу
+        local platform = Instance.new("Part")
+        platform.Name = "FullMapPlatform"
+        platform.Size = Vector3.new(50000, 10, 50000)
+        platform.Position = Vector3.new(0, -10, 0)
+        platform.Anchored = true
+        platform.CanCollide = true
+        platform.Transparency = 0.5
+        platform.Parent = workspace
+        getgenv().platform = platform  -- Сохраняем в переменную для удаления
+        print("Платформа создана ✅")
+    else
+        -- Выключаем и удаляем платформу
+        if getgenv().platform then
+            getgenv().platform:Destroy()
+            getgenv().platform = nil
+            print("Платформа удалена ❌")
+        end
+    end
+end)
+
+local ToggleInfiniteJump = Section:NewToggle("Infinite Jump", "Enables infinite jumping", function(state)
+    local UserInputService = game:GetService("UserInputService")
+    local Player = game.Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local Humanoid = Character:WaitForChild("Humanoid")
+    
+    if _G.InfiniteJumpConnection then
+        _G.InfiniteJumpConnection:Disconnect()
+        _G.InfiniteJumpConnection = nil
+    end
+    
+    if state then
+        -- Подключаем событие на запрос прыжка
+        _G.InfiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+            Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end)
+        print("Infinite Jump enabled")
+        
+        -- Обработчик возрождения
+        Player.CharacterAdded:Connect(function()
+            if state then
+                task.wait(0.5) -- Небольшая задержка после возрождения
+                Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    else
+        print("Infinite Jump disabled")
+    end
+end)
+
+local hideFramesToggle = Section:NewToggle("Hide All Frames", "Hides all frame instances in ReplicatedStorage", function(state)
+    local rSto = game:GetService("ReplicatedStorage")
+    
+    for _, obj in pairs(rSto:GetChildren()) do
+        if obj:IsA("Instance") and obj.Name:match("Frame$") then
+            obj.Visible = not state
+        end
+    end
+    
+    if state then
+        print("All frames are now hidden")
+    else
+        print("All frames are now visible")
+    end
+end)
+
+-- Инициализация состояния по умолчанию
+for _, obj in pairs(game:GetService("ReplicatedStorage"):GetChildren()) do
+    if obj:IsA("Instance") and obj.Name:match("Frame$") then
+        obj.Visible = true -- Убедитесь, что они видимы, если переключатель выключен изначально
+    end
+end
+
+_G.InfiniteJumpConnection = nil
+
+Section:NewToggle("Anti Lag", "Оптимизирует объекты для лучшей производительности", function(state)
+    antiLagEnabled = state
+    
+    if state then
+        print("🌀 Anti-Lag: АКТИВИРОВАН")
+        
+        -- Таблица для хранения оригинальных материалов
+        local originalMaterials = {}
+        local originalReflectance = {}
+        
+        local function optimizeObjects()
+            for _, v in pairs(Workspace:GetDescendants()) do
+                if v:IsA("BasePart") and not v.Parent:IsA("Model") then
+                    -- Сохраняем оригинальные значения
+                    originalMaterials[v] = v.Material
+                    originalReflectance[v] = v.Reflectance
+                    
+                    -- Применяем оптимизации
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                end
+            end
+        end
+        
+        local function restoreObjects()
+            for part, material in pairs(originalMaterials) do
+                if part:IsA("BasePart") then
+                    part.Material = material
+                    part.Reflectance = originalReflectance[part] or 0
+                end
+            end
+            table.clear(originalMaterials)
+            table.clear(originalReflectance)
+        end
+        
+        -- Обработчик добавления новых объектов
+        local descendantAddedConnection
+        descendantAddedConnection = Workspace.DescendantAdded:Connect(function(descendant)
+            if antiLagEnabled and descendant:IsA("BasePart") and not descendant.Parent:IsA("Model") then
+                originalMaterials[descendant] = descendant.Material
+                originalReflectance[descendant] = descendant.Reflectance
+                descendant.Material = Enum.Material.SmoothPlastic
+                descendant.Reflectance = 0
+            end
+        end)
+        
+        -- Первоначальная оптимизация
+        optimizeObjects()
+        
+        -- Функция деактивации
+        local function deactivate()
+            restoreObjects()
+            if descendantAddedConnection then
+                descendantAddedConnection:Disconnect()
+            end
+            print("🌀 Anti-Lag: ДЕАКТИВИРОВАН 🚫")
+        end
+        
+        return deactivate
+        
+    else
+        print("🌀 Anti-Lag: ДЕАКТИВИРОВАН 🚫")
+    end
+end)
+
+local antiAFKEnabled = false
+local afkConnection = nil
+
+-- Функция для активации Anti AFK
+local function activateAntiAFK()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/evxncodes/mainroblox/main/anti-afk", true))()
+end
+
+Section:NewToggle("Enable Anti AFK", "Prevents you from being kicked for AFK", function(state)
+    antiAFKEnabled = state
+    
+    if state then
+        activateAntiAFK()
+        
+        -- Дополнительная защита при возрождении
+        game.Players.LocalPlayer.CharacterAdded:Connect(function()
+            if antiAFKEnabled then
+                task.wait(0.5)
+                activateAntiAFK()
+            end
+        end)
+    else
+        -- Можно добавить отключение функционала, если это поддерживается скриптом
+    end
+end)
+
+Section:NewButton("Remove Add Portal", "ButtonInfo", function()
+    game.Players.LocalPlayer.adsAllowed.Value = false
+end)
+
+Section:NewButton("Permanent ShiftLock", "ButtonInfo", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/MiniNoobie/ShiftLockx/main/Shiftlock-MiniNoobie"))()
+end)
+
+local Tab = Window:NewTab("Player settings")
+
+local Section = Tab:NewSection("")
+
+Section:NewDropdown("SpeedChanger", "DropdownInf", {"Speed 100", "Speed 250", "Speed 500"}, function(qwerty)
+    if qwerty == "Speed 100" then
+game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+elseif qwerty == "Speed 250" then
+game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 250
+elseif qwerty == "Speed 500" then
+game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 500
+end
+end)
+
+local Section = Tab:NewSection("")
+
+Section:NewDropdown("JumpChanger", "DropdownInf", {"Jump 50", "Jump 200", "Jump 500"}, function(qwerty)
+    if qwerty == "Jump 50" then
+game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
+elseif qwerty == "Jump 200" then
+game.Players.LocalPlayer.Character.Humanoid.JumpPower = 200
+elseif qwerty == "Jump 500" then
+game.Players.LocalPlayer.Character.Humanoid.JumpPower = 500
+end
+end)
