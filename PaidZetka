@@ -1,5 +1,37 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Robojini/Tuturial_UI_Library/main/UI_Template_1", true))()
-local Window = Library.CreateLib("zetka hub | paid version", "RJTheme3")
+
+-- Whitelist (только UserId)
+local whitelist = {
+    [7108226671] = true,  -- Пример ID 1
+    [1756500346] = true,  -- Пример ID 2
+    [2966200981] = true,  -- Пример ID 3
+    [8330920857] = true,  -- Пример ID 4
+    -- Добавьте свои ID в таком формате: [ваш_ID] = true,
+}
+
+-- Проверка текущего игрока
+local localPlayer = game:GetService("Players").LocalPlayer
+if not whitelist[localPlayer.UserId] then
+    localPlayer:Kick("⛔ You are not whitelisted!")
+    return -- Прекращаем выполнение скрипта
+end
+
+-- Если игрок в whitelist - создаём интерфейс
+local Window = Library.CreateLib("Zetka Hub | Paid Version", "RJTheme3")
+
+-- Дополнительная проверка для новых игроков (если это FE)
+game.Players.PlayerAdded:Connect(function(player)
+    if not whitelist[player.UserId] then
+        player:Kick("⛔ You are not whitelisted!")
+    end
+end)
+
+--[[ 
+  Важные заметки:
+  1. Всегда храните whitelist на сервере, а не в клиентском скрипте
+  2. Для максимальной защиты используйте серверные скрипты (если возможно)
+  3. Этот код защищает только от обычных игроков, но не от эксплойтов
+]]
 
 local Tab = Window:NewTab("Credits")
 
