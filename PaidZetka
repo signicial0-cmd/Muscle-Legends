@@ -3,9 +3,9 @@ local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Roboj
 -- Whitelist (только UserId)
 local whitelist = {
     [7108226671] = true,  -- Пример ID 1
-    [1756500346] = true,  -- Пример ID 2
-    [2966200981] = true,  -- Пример ID 3
-    [8330920857] = true,  -- Пример ID 4
+    [2966200981] = true,  -- Пример ID 2
+    [8330920857] = true,  -- Пример ID 3
+    [1756500346] = true,  -- Пример ID 4
     -- Добавьте свои ID в таком формате: [ваш_ID] = true,
 }
 
