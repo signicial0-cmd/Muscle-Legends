@@ -1296,7 +1296,7 @@ Section:NewToggle("Auto Legend Rock (1.000.000)", "Авто-удары по ко
     end
 end)
 
-Section:NewToggle("Muscle King Rock (5.000.000 recomended size 5)", "Телепортация на точку каждую секунду", function(state)
+Section:NewToggle("Muscle King Rock (5.000.000 recomended size 5))", "Телепортация на точку каждую секунду", function(state)
     autoTeleport = state
     
     if state then
