@@ -253,6 +253,50 @@ Section:NewToggle("Auto Size 2", "ToggleInfo", function(state)
     end
 end)
 
+local targetCFrame = CFrame.new(-8747.04199, 121.162392, -5858.64014, 0.66414386, -4.84184497e-08, 0.747604787, 7.34292414e-08, 1, -4.67000827e-10, -0.747604787, 5.52062112e-08, 0.66414386)
+local teleportActive = false
+local teleportThread
+
+local function teleportPlayer()
+    if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+    end
+end
+
+local function toggleTeleport()
+    teleportActive = not teleportActive
+    
+    if teleportActive then
+        -- Запускаем телепортацию
+        teleportThread = coroutine.create(function()
+            while teleportActive do
+                teleportPlayer()
+                wait(1)
+            end
+        end)
+        coroutine.resume(teleportThread)
+        
+        -- Обработчик возрождения персонажа
+        game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
+            if teleportActive then
+                character:WaitForChild("HumanoidRootPart")
+                teleportPlayer()
+            end
+        end)
+        
+        print("Телепортация активирована 🔵")
+    else
+        -- Останавливаем телепортацию
+        if teleportThread then
+            coroutine.close(teleportThread)
+        end
+        print("Телепортация деактивирована 🔴")
+    end
+end
+
+-- Создаем кнопку для управления
+Section:NewButton("Auto King", "ButtonInfo", toggleTeleport)
+
 local autoEquip = false
 local connection = nil
 
