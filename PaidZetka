@@ -1296,9 +1296,6 @@ Section:NewToggle("Auto Legend Rock (1.000.000)", "Авто-удары по ко
     end
 end)
 
-local autoMode = false
-local connections = {}
-
 local teleportConfig = {
     active = false,
     targetCFrame = CFrame.new(-9029.7959, 5.53625202, -6026.74268, 0.276099414, -9.5099395e-09, -0.961129069, -3.1277569e-08, 1, -1.88795219e-08, 0.961129069, 3.52744038e-08, 0.276099414),
