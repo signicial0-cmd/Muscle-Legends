@@ -1299,95 +1299,56 @@ end)
 local autoMode = false
 local connections = {}
 
-Section:NewToggle("Auto Muscle King Rock (5.000.000)", "Авто-удары по координатам", function(state)
-    autoMode = state
-    
-    if state then
-        print("⚡ Активирован авто-режим ударов по координатам")
-        
-        local player = game.Players.LocalPlayer
-        local toolName = "Punch"
-        local targetCFrame = CFrame.new(-8971.56641, 27.4031715, -6061.27734, -1, 0, 0, 0, 1, 0, 0, 0, -1)
-        
-        -- Очистка предыдущих подключений
-        for _, conn in pairs(connections) do
-            conn:Disconnect()
-        end
-        connections = {}
-        
-        -- Основная функция управления персонажем
-        local function setupCharacter(character)
-            local humanoid = character:WaitForChild("Humanoid")
-            
-            -- Улучшенная функция экипировки
-            local function equipPunch()
-                local backpack = player:FindFirstChildOfClass("Backpack")
-                if backpack then
-                    local tool = backpack:FindFirstChild(toolName)
-                    if tool and not character:FindFirstChild(toolName) then
-                        tool.Parent = character
-                        tool:Equip()
-                        return true
-                    end
-                end
-                return false
-            end
-            
-            -- Функция атаки с телепортацией
-            local function startAttackLoop()
-                if connections.attack then connections.attack:Disconnect() end
-                
-                connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
-                    if autoMode and character and character.PrimaryPart then
-                        -- Телепортация к цели
-                        character:SetPrimaryPartCFrame(targetCFrame)
-                        
-                        -- Поиск инструмента для атаки
-                        local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
-                        if tool then
-                            tool:Activate()
-                            task.wait(0.01) -- Оптимальная задержка между ударами
-                        end
-                    end
-                end)
-            end
-            
-            -- Обработчик добавления инструмента
-            connections.toolAdded = character.ChildAdded:Connect(function(child)
-                if child.Name == toolName or child:IsA("Tool") then
-                    startAttackLoop()
-                end
-            end)
-            
-            -- Обработчик смерти персонажа
-            connections.died = humanoid.Died:Connect(function()
-                task.wait(1.2) -- Увеличенное время для гарантированного возрождения
-                if autoMode and player.Character then
-                    equipPunch()
-                end
-            end)
-            
-            -- Первоначальная настройка
-            if equipPunch() then
-                startAttackLoop()
-            end
-        end
-        
-        -- Инициализация для текущего персонажа
-        if player.Character then
-            setupCharacter(player.Character)
-        end
-        
-        -- Подключение для новых персонажей
-        connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
-        
-    else
-        print("❌ Авто-режим деактивирован")
-        for _, conn in pairs(connections) do
-            conn:Disconnect()
-        end
-        connections = {}
+local teleportConfig = {
+    active = false,
+    targetCFrame = CFrame.new(-9029.7959, 5.53625202, -6026.74268, 0.276099414, -9.5099395e-09, -0.961129069, -3.1277569e-08, 1, -1.88795219e-08, 0.961129069, 3.52744038e-08, 0.276099414),
+    thread = nil
+}
+
+local function teleportPlayer()
+    if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = teleportConfig.targetCFrame
     end
+end
+
+local function toggleTeleport()
+    teleportConfig.active = not teleportConfig.active
+    
+    if teleportConfig.active then
+        -- Включаем телепортацию
+        teleportConfig.thread = coroutine.create(function()
+            while teleportConfig.active do
+                teleportPlayer()
+                wait(1)
+            end
+        end)
+        coroutine.resume(teleportConfig.thread)
+        
+        -- Авто-телепорт при возрождении
+        game.Players.LocalPlayer.CharacterAdded:Connect(function(character)
+            if teleportConfig.active then
+                character:WaitForChild("HumanoidRootPart")
+                teleportPlayer()
+            end
+        end)
+    else
+        -- Выключаем телепортацию
+        if teleportConfig.thread then
+            coroutine.close(teleportConfig.thread)
+        end
+    end
+end
+
+-- Создаем переключатель
+local teleportToggle = Section:NewToggle(
+    "Muscle King Rock (5.000.000)", 
+    "Телепортирует на координаты каждую секунду", 
+    teleportConfig.active, -- начальное состояние
+    function(state)
+        teleportConfig.active = state
+        toggleTeleport()
+    end
+)
 end)
 
 local autoMode = false
