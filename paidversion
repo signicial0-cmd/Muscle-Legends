@@ -535,79 +535,49 @@ local punchConnection = nil
 
 local Toggle6 = Tabs.Main:AddToggle("MyToggle", 
 {
-    Title = "Auto Normal Punch", 
+    Title = "Auto Normal Punch",
     Default = false,
     Callback = function(state)
-	punchActive = state
-    
-    -- РЈРґР°Р»СЏРµРј РїСЂРµРґС‹РґСѓС‰РµРµ РїРѕРґРєР»СЋС‡РµРЅРёРµ, РµСЃР»Рё Р±С‹Р»Рѕ
-    if punchConnection then
-        punchConnection:Disconnect()
-        punchConnection = nil
-    end
-    
-    if state then
-        local player = game.Players.LocalPlayer
+        punchActive = state
         
-        local function startPunch()
-            local char = player.Character or player.CharacterAdded:Wait()
+        if punchConnection then
+            punchConnection:Disconnect()
+            punchConnection = nil
+        end
+        
+        if state then
+            local player = game.Players.LocalPlayer
             
-            while punchActive and char and char:IsDescendantOf(workspace) do
-                local punchTool = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
-                
-                if punchTool then
-                    -- РђРІС‚Рѕ-СЌРєРёРїРёСЂРѕРІРєР°
-                    if punchTool.Parent ~= char then
-                        char:WaitForChild("Humanoid"):EquipTool(punchTool)
-                        task.wait(0.1) -- Р”Р°РµРј РІСЂРµРјСЏ РЅР° СЌРєРёРїРёСЂРѕРІРєСѓ
+            local function fastPunch()
+                while punchActive do
+                    local char = player.Character
+                    if char then
+                        local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                        if punch then
+                            if punch.Parent ~= char then
+                                char.Humanoid:EquipTool(punch)
+                                task.wait(0.1)
+                            end
+                            punch:Activate()
+                        end
                     end
-                    
-                    -- РђРєС‚РёРІР°С†РёСЏ СѓРґР°СЂР° СЃ РѕР±С‹С‡РЅРѕР№ СЃРєРѕСЂРѕСЃС‚СЊСЋ
-                    punchTool:Activate()
+                    task.wait(0.01)
                 end
-                task.wait(0.01) -- РРЅС‚РµСЂРІР°Р» РјРµР¶РґСѓ СѓРґР°СЂР°РјРё (РјРѕР¶РЅРѕ СЂРµРіСѓР»РёСЂРѕРІР°С‚СЊ)
             end
-        end
-        
-        -- Р—Р°РїСѓСЃРєР°РµРј СЃСЂР°Р·Сѓ Рё РїСЂРё РєР°Р¶РґРѕРј СЂРµСЃРїР°РІРЅРµ
-        punchConnection = player.CharacterAdded:Connect(function()
-            if punchActive then
-                task.wait(0.5) -- Р”Р°РµРј РІСЂРµРјСЏ РЅР° РїРѕСЏРІР»РµРЅРёРµ РїРµСЂСЃРѕРЅР°Р¶Р°
-                startPunch()
-            end
-        end)
-        
-        startPunch() -- РџРµСЂРІС‹Р№ Р·Р°РїСѓСЃРє
-    end 
-end
-})
-
--- Р¤СѓРЅРєС†РёСЏ РґР»СЏ Р°С‚Р°РєРё
-local function attackPlayers()
-    local player = game.Players.LocalPlayer
-    
-    -- РќР°СЃС‚СЂРѕР№РєР° Р±С‹СЃС‚СЂРѕР№ Р°С‚Р°РєРё
-    local punch = player.Backpack:FindFirstChild("Punch") or (player.Character and player.Character:FindFirstChild("Punch"))
-    if punch and punch:FindFirstChild("attackTime") then
-        punch.attackTime.Value = 0.01
-    end
-    
-    -- РђС‚Р°РєР° РІСЃРµС… РёРіСЂРѕРєРѕРІ
-    for _, target in ipairs(game.Players:GetPlayers()) do
-        if target ~= player then
-            local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-            local rHand = player.Character and player.Character:FindFirstChild("RightHand")
-            local lHand = player.Character and player.Character:FindFirstChild("LeftHand")
             
- if root and rHand and lHand then
-                firetouchinterest(rHand, root, 1)
-                firetouchinterest(lHand, root, 1)
-                firetouchinterest(rHand, root, 0)
-                firetouchinterest(lHand, root, 0)
-            end
+            -- Обработчик смерти персонажа
+            punchConnection = player.CharacterAdded:Connect(function()
+                if punchActive then
+                    task.wait(0.5) -- Даем время на появление персонажа
+                    fastPunch()
+                end
+            end)
+            
+            -- Запускаем сразу
+            fastPunch()
         end
     end
-end
+})
 
 local autoKill = false
 local connection = nil
