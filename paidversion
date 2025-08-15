@@ -573,6 +573,7 @@ Callback = function(state)
         fastPunch()
     end
 end
+
 local autoKill = false
 local connection = nil
 
