@@ -527,58 +527,57 @@ local Input3 = Tabs.Main:AddInput("Input", {
 
 local Section3 = Tabs.Main:AddSection("Kill Stuff")
 
-local autoEquip = false
-local connection = nil
-
 local punchActive = false
-local punchConnection = nil
+local punchThread = nil
 
-local Toggle6 = Tabs.Main:AddToggle("MyToggle", 
-{
-    Title = "Auto Normal Punch",
+local Toggle6 = Tabs.Main:AddToggle("MyToggle", {
+    Title = "Ultra Fast Punch",
     Default = false,
     Callback = function(state)
         punchActive = state
         
-        if punchConnection then
-            punchConnection:Disconnect()
-            punchConnection = nil
+        -- Останавливаем предыдущий поток
+        if punchThread then
+            task.cancel(punchThread)
+            punchThread = nil
         end
         
         if state then
             local player = game.Players.LocalPlayer
             
-            local function fastPunch()
+            -- Функция для сверхбыстрых ударов
+            local function ultraPunch()
                 while punchActive do
-                    local char = player.Character
-                    if char then
-                        local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
-                        if punch then
-                            if punch.Parent ~= char then
-                                char.Humanoid:EquipTool(punch)
-                                task.wait(0.1)
-                            end
-                            punch:Activate()
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                    
+                    if punch and char:FindFirstChild("Humanoid") then
+                        if punch.Parent ~= char then
+                            char.Humanoid:EquipTool(punch)
+                            task.wait(0.05)
                         end
+                        punch:Activate()
                     end
                     task.wait(0.01)
                 end
             end
             
-            -- Обработчик смерти персонажа
-            punchConnection = player.CharacterAdded:Connect(function()
+            -- Запускаем в отдельном потоке
+            punchThread = task.spawn(ultraPunch)
+            
+            -- Автопереподключение после смерти
+            player.CharacterAdded:Connect(function()
                 if punchActive then
-                    task.wait(0.5) -- Даем время на появление персонажа
-                    fastPunch()
+                    task.wait(0.3) -- Короткая задержка для появления персонажа
+                    if punchThread then
+                        task.cancel(punchThread)
+                    end
+                    punchThread = task.spawn(ultraPunch)
                 end
             end)
-            
-            -- Запускаем сразу
-            fastPunch()
         end
     end
 })
-
 local autoKill = false
 local connection = nil
 
