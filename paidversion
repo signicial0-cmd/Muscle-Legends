@@ -528,51 +528,70 @@ local Input3 = Tabs.Main:AddInput("Input", {
 local Section3 = Tabs.Main:AddSection("Kill Stuff")
 
 local punchActive = false
-local punchThread = nil
+local punchThreads = {}
 
 local Toggle6 = Tabs.Main:AddToggle("MyToggle", {
-    Title = "Ultra Fast Punch",
+    Title = "HYPER SPEED PUNCH",
     Default = false,
     Callback = function(state)
         punchActive = state
         
-        -- Останавливаем предыдущий поток
-        if punchThread then
-            task.cancel(punchThread)
-            punchThread = nil
+        -- Убиваем все предыдущие потоки
+        for _, thread in pairs(punchThreads) do
+            task.cancel(thread)
         end
+        punchThreads = {}
         
         if state then
             local player = game.Players.LocalPlayer
             
-            -- Функция для сверхбыстрых ударов
-            local function ultraPunch()
+            -- Супер-агрессивная функция ударов
+            local function hyperPunch()
                 while punchActive do
+                    -- Ждём любой ценой
                     local char = player.Character or player.CharacterAdded:Wait()
-                    local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                    if not char then continue end
                     
-                    if punch and char:FindFirstChild("Humanoid") then
-                        if punch.Parent ~= char then
-                            char.Humanoid:EquipTool(punch)
-                            task.wait(0.05)
+                    -- Находим панч ЛЮБЫМ способом
+                    local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                    if not punch then
+                        -- Если не нашли - ждём появления
+                        for _, v in ipairs(player.Backpack:GetChildren()) do
+                            if v.Name:lower():find("punch") then
+                                punch = v
+                                break
+                            end
                         end
-                        punch:Activate()
+                        if not punch then continue end
                     end
-                    task.wait(0.01)
+                    
+                    -- Мгновенное экипирование
+                    if punch.Parent ~= char and char:FindFirstChild("Humanoid") then
+                        char.Humanoid:EquipTool(punch)
+                        -- Ультракороткая задержка
+                        task.wait(0.02)
+                    end
+                    
+                    -- АБСОЛЮТНЫЙ СПАМ активацией
+                    for _ = 1, 5 do  -- 5 активаций за раз
+                        pcall(function() punch:Activate() end)
+                    end
+                    
+                    -- Минимально возможная задержка
+                    task.wait(0.001)  -- 1 мс - предел для Roblox
                 end
             end
             
-            -- Запускаем в отдельном потоке
-            punchThread = task.spawn(ultraPunch)
+            -- Запускаем ОДНОВРЕМЕННО 3 потока для гарантии
+            table.insert(punchThreads, task.spawn(hyperPunch))
+            table.insert(punchThreads, task.spawn(hyperPunch))
+            table.insert(punchThreads, task.spawn(hyperPunch))
             
-            -- Автопереподключение после смерти
+            -- Автовоскрешение
             player.CharacterAdded:Connect(function()
                 if punchActive then
-                    task.wait(0.3) -- Короткая задержка для появления персонажа
-                    if punchThread then
-                        task.cancel(punchThread)
-                    end
-                    punchThread = task.spawn(ultraPunch)
+                    task.wait(0.1)  -- Экстренное восстановление
+                    table.insert(punchThreads, task.spawn(hyperPunch))
                 end
             end)
         end
