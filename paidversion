@@ -535,87 +535,44 @@ local punchConnection = nil
 
 local Toggle6 = Tabs.Main:AddToggle("MyToggle", 
 {
-    -- Auto Normal Punch Script
-local punchActive = false
-local punchConnection = nil
-
-local function startPunch(player)
-    local char = player.Character or player.CharacterAdded:Wait()
-    
-    while punchActive and char and char:IsDescendantOf(workspace) do
-        local punchTool = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
-        
-        if punchTool then
-            -- Auto-equip punch tool
-            if punchTool.Parent ~= char then
-                char:WaitForChild("Humanoid"):EquipTool(punchTool)
-                task.wait(0.1) -- Wait for equip
-            end
-            
-            -- Activate punch with normal speed
-            punchTool:Activate()
-        end
-        task.wait(0.01) -- Punch interval (adjustable)
-    end
-end
-
-local function attackPlayers()
-    local player = game.Players.LocalPlayer
-    
-    -- Configure fast attack
-    local punch = player.Backpack:FindFirstChild("Punch") or (player.Character and player.Character:FindFirstChild("Punch"))
-    if punch and punch:FindFirstChild("attackTime") then
-        punch.attackTime.Value = 0.01
-    end
-    
-    -- Attack all other players
-    for _, target in ipairs(game.Players:GetPlayers()) do
-        if target ~= player then
-            local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-            local rHand = player.Character and player.Character:FindFirstChild("RightHand")
-            local lHand = player.Character and player.Character:FindFirstChild("LeftHand")
-            
-            if root and rHand and lHand then
-                firetouchinterest(rHand, root, 1)
-                firetouchinterest(lHand, root, 1)
-                firetouchinterest(rHand, root, 0)
-                firetouchinterest(lHand, root, 0)
-            end
-        end
-    end
-end
-
--- Create the toggle
-local PunchToggle = {
     Title = "Auto Normal Punch",
-    Default = false,
-    Callback = function(state)
-        punchActive = state
-        
-        -- Clean up previous connection
-        if punchConnection then
-            punchConnection:Disconnect()
-            punchConnection = nil
-        end
-        
-        if state then
-            local player = game.Players.LocalPlayer
-            
-            -- Start punching and reconnect on respawn
-            punchConnection = player.CharacterAdded:Connect(function()
-                if punchActive then
-                    task.wait(0.5) -- Wait for character to fully load
-                    startPunch(player)
-                end
-            end)
-            
-            startPunch(player) -- Initial start
-        end
+Default = false,
+Callback = function(state)
+    punchActive = state
+    
+    if punchConnection then
+        punchConnection:Disconnect()
     end
-}
-
--- Add to your executor's UI here
-
+    
+    if state then
+        local player = game.Players.LocalPlayer
+        
+        local function fastPunch()
+            while punchActive and wait(0.01) do
+                local char = player.Character
+                if char then
+                    local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                    if punch then
+                        if punch.Parent ~= char then
+                            char.Humanoid:EquipTool(punch)
+                            wait(0.1)
+                        end
+                        punch:Activate()
+                    end
+                end
+            end
+        end
+        
+        punchConnection = player.CharacterAdded:Connect(function()
+            if punchActive then
+                wait(0.5)
+                fastPunch()
+            end
+        end)
+        
+        fastPunch()
+    end
+end
 local autoKill = false
 local connection = nil
 
