@@ -933,96 +933,97 @@ local connections = {}
 local Toggle11 = Tabs.Glitching:AddToggle("MyToggle", 
 {
     Title = "Auto Tiny Rock (0)", 
-    Default = false,
-    Callback = function(state)
-	autoMode = state
+Default = false,
+Callback = function(state)
+    autoMode = state
     
     if state then
-        
-        local player = game.Players.LocalPlayer
+        local player = game:Players.LocalPlayer
         local toolName = "Punch"
         local targetCFrame = CFrame.new(17.6399956, -1.30998898, 2105.49121, -1, 0, 0, 0, 1, 0, 0, 0, -1)
         
-        -- РћС‡РёСЃС‚РєР° РїСЂРµРґС‹РґСѓС‰РёС… РїРѕРґРєР»СЋС‡РµРЅРёР№
+        -- Очистка предыдущих подключений
         for _, conn in pairs(connections) do
             conn:Disconnect()
         end
         connections = {}
         
-        -- РћСЃРЅРѕРІРЅР°СЏ С„СѓРЅРєС†РёСЏ СѓРїСЂР°РІР»РµРЅРёСЏ РїРµСЂСЃРѕРЅР°Р¶РµРј
         local function setupCharacter(character)
             local humanoid = character:WaitForChild("Humanoid")
             
-            -- РЈР»СѓС‡С€РµРЅРЅР°СЏ С„СѓРЅРєС†РёСЏ СЌРєРёРїРёСЂРѕРІРєРё
-            local function equipPunch()
+            -- Улучшенная функция экипировки
+            local function equipTool()
                 local backpack = player:FindFirstChildOfClass("Backpack")
                 if backpack then
-                    local tool = backpack:FindFirstChild(toolName)
-                    if tool and not character:FindFirstChild(toolName) then
-                        tool.Parent = character
-                        tool:Equip()
-                        return true
+                    for _, tool in ipairs(backpack:GetChildren()) do
+                        if (tool.Name == toolName or tool:IsA("Tool")) and not character:FindFirstChild(tool.Name) then
+                            tool.Parent = character
+                            tool:Equip()
+                            return true
+                        end
                     end
                 end
                 return false
             end
             
-            -- Р¤СѓРЅРєС†РёСЏ Р°С‚Р°РєРё СЃ С‚РµР»РµРїРѕСЂС‚Р°С†РёРµР№
+            -- Функция атаки с телепортацией
             local function startAttackLoop()
                 if connections.attack then connections.attack:Disconnect() end
                 
                 connections.attack = game:GetService("RunService").Heartbeat:Connect(function()
                     if autoMode and character and character.PrimaryPart then
-                        -- РўРµР»РµРїРѕСЂС‚Р°С†РёСЏ Рє С†РµР»Рё
+                        -- Телепортация к цели
                         character:SetPrimaryPartCFrame(targetCFrame)
                         
-                        -- РџРѕРёСЃРє РёРЅСЃС‚СЂСѓРјРµРЅС‚Р° РґР»СЏ Р°С‚Р°РєРё
+                        -- Поиск инструмента для атаки
                         local tool = character:FindFirstChild(toolName) or character:FindFirstChildOfClass("Tool")
                         if tool then
-                            tool:Activate()
-                            task.wait(0.01) -- РћРїС‚РёРјР°Р»СЊРЅР°СЏ Р·Р°РґРµСЂР¶РєР° РјРµР¶РґСѓ СѓРґР°СЂР°РјРё
+                            -- Оптимизированная атака
+                            for i = 1, 3 do  -- 3 быстрых удара
+                                tool:Activate()
+                                task.wait(0.01)
+                            end
                         end
                     end
                 end)
             end
             
-            -- РћР±СЂР°Р±РѕС‚С‡РёРє РґРѕР±Р°РІР»РµРЅРёСЏ РёРЅСЃС‚СЂСѓРјРµРЅС‚Р°
+            -- Обработчики событий
             connections.toolAdded = character.ChildAdded:Connect(function(child)
                 if child.Name == toolName or child:IsA("Tool") then
                     startAttackLoop()
                 end
             end)
             
-            -- РћР±СЂР°Р±РѕС‚С‡РёРє СЃРјРµСЂС‚Рё РїРµСЂСЃРѕРЅР°Р¶Р°
             connections.died = humanoid.Died:Connect(function()
-                task.wait(1.2) -- РЈРІРµР»РёС‡РµРЅРЅРѕРµ РІСЂРµРјСЏ РґР»СЏ РіР°СЂР°РЅС‚РёСЂРѕРІР°РЅРЅРѕРіРѕ РІРѕР·СЂРѕР¶РґРµРЅРёСЏ
+                task.wait(1.5) -- Увеличенное время для возрождения
                 if autoMode and player.Character then
-                    equipPunch()
+                    equipTool()
                 end
             end)
             
-            -- РџРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅР°СЏ РЅР°СЃС‚СЂРѕР№РєР°
-            if equipPunch() then
+            -- Первоначальная настройка
+            if equipTool() then
                 startAttackLoop()
             end
         end
         
-        -- РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РґР»СЏ С‚РµРєСѓС‰РµРіРѕ РїРµСЂСЃРѕРЅР°Р¶Р°
+        -- Инициализация для текущего персонажа
         if player.Character then
             setupCharacter(player.Character)
         end
         
-        -- РџРѕРґРєР»СЋС‡РµРЅРёРµ РґР»СЏ РЅРѕРІС‹С… РїРµСЂСЃРѕРЅР°Р¶РµР№
+        -- Подключение для новых персонажей
         connections.characterAdded = player.CharacterAdded:Connect(setupCharacter)
         
     else
+        -- Отключение при выключении режима
         for _, conn in pairs(connections) do
             conn:Disconnect()
         end
         connections = {}
     end
 end
-})
 
 local Toggle12 = Tabs.Glitching:AddToggle("MyToggle", 
 {
