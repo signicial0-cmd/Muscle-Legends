@@ -527,76 +527,88 @@ local Input3 = Tabs.Main:AddInput("Input", {
 
 local Section3 = Tabs.Main:AddSection("Kill Stuff")
 
-local punchActive = false
-local punchThreads = {}
+local autoEquip = false
+local connection = nil
 
-local Toggle6 = Tabs.Main:AddToggle("MyToggle", {
-    Title = "HYPER SPEED PUNCH",
+local punchActive = false
+local punchConnection = nil
+
+local Toggle6 = Tabs.Main:AddToggle("MyToggle", 
+{
+    Title = "Auto Normal Punch", 
     Default = false,
     Callback = function(state)
-        punchActive = state
+	punchActive = state
+    
+    -- РЈРґР°Р»СЏРµРј РїСЂРµРґС‹РґСѓС‰РµРµ РїРѕРґРєР»СЋС‡РµРЅРёРµ, РµСЃР»Рё Р±С‹Р»Рѕ
+    if punchConnection then
+        punchConnection:Disconnect()
+        punchConnection = nil
+    end
+    
+    if state then
+        local player = game.Players.LocalPlayer
         
-        -- Убиваем все предыдущие потоки
-        for _, thread in pairs(punchThreads) do
-            task.cancel(thread)
-        end
-        punchThreads = {}
-        
-        if state then
-            local player = game.Players.LocalPlayer
+        local function startPunch()
+            local char = player.Character or player.CharacterAdded:Wait()
             
-            -- Супер-агрессивная функция ударов
-            local function hyperPunch()
-                while punchActive do
-                    -- Ждём любой ценой
-                    local char = player.Character or player.CharacterAdded:Wait()
-                    if not char then continue end
-                    
-                    -- Находим панч ЛЮБЫМ способом
-                    local punch = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
-                    if not punch then
-                        -- Если не нашли - ждём появления
-                        for _, v in ipairs(player.Backpack:GetChildren()) do
-                            if v.Name:lower():find("punch") then
-                                punch = v
-                                break
-                            end
-                        end
-                        if not punch then continue end
+            while punchActive and char and char:IsDescendantOf(workspace) do
+                local punchTool = player.Backpack:FindFirstChild("Punch") or char:FindFirstChild("Punch")
+                
+                if punchTool then
+                    -- РђРІС‚Рѕ-СЌРєРёРїРёСЂРѕРІРєР°
+                    if punchTool.Parent ~= char then
+                        char:WaitForChild("Humanoid"):EquipTool(punchTool)
+                        task.wait(0.01) -- Р”Р°РµРј РІСЂРµРјСЏ РЅР° СЌРєРёРїРёСЂРѕРІРєСѓ
                     end
                     
-                    -- Мгновенное экипирование
-                    if punch.Parent ~= char and char:FindFirstChild("Humanoid") then
-                        char.Humanoid:EquipTool(punch)
-                        -- Ультракороткая задержка
-                        task.wait(0.02)
-                    end
-                    
-                    -- АБСОЛЮТНЫЙ СПАМ активацией
-                    for _ = 1, 5 do  -- 5 активаций за раз
-                        pcall(function() punch:Activate() end)
-                    end
-                    
-                    -- Минимально возможная задержка
-                    task.wait(0.001)  -- 1 мс - предел для Roblox
+                    -- РђРєС‚РёРІР°С†РёСЏ СѓРґР°СЂР° СЃ РѕР±С‹С‡РЅРѕР№ СЃРєРѕСЂРѕСЃС‚СЊСЋ
+                    punchTool:Activate()
                 end
+                task.wait(0.01) -- РРЅС‚РµСЂРІР°Р» РјРµР¶РґСѓ СѓРґР°СЂР°РјРё (РјРѕР¶РЅРѕ СЂРµРіСѓР»РёСЂРѕРІР°С‚СЊ)
             end
+        end
+        
+        -- Р—Р°РїСѓСЃРєР°РµРј СЃСЂР°Р·Сѓ Рё РїСЂРё РєР°Р¶РґРѕРј СЂРµСЃРїР°РІРЅРµ
+        punchConnection = player.CharacterAdded:Connect(function()
+            if punchActive then
+                task.wait(0.05) -- Р”Р°РµРј РІСЂРµРјСЏ РЅР° РїРѕСЏРІР»РµРЅРёРµ РїРµСЂСЃРѕРЅР°Р¶Р°
+                startPunch()
+            end
+        end)
+        
+        startPunch() -- РџРµСЂРІС‹Р№ Р·Р°РїСѓСЃРє
+    end 
+end
+})
+
+-- Р¤СѓРЅРєС†РёСЏ РґР»СЏ Р°С‚Р°РєРё
+local function attackPlayers()
+    local player = game.Players.LocalPlayer
+    
+    -- РќР°СЃС‚СЂРѕР№РєР° Р±С‹СЃС‚СЂРѕР№ Р°С‚Р°РєРё
+    local punch = player.Backpack:FindFirstChild("Punch") or (player.Character and player.Character:FindFirstChild("Punch"))
+    if punch and punch:FindFirstChild("attackTime") then
+        punch.attackTime.Value = 0.01
+    end
+    
+    -- РђС‚Р°РєР° РІСЃРµС… РёРіСЂРѕРєРѕРІ
+    for _, target in ipairs(game.Players:GetPlayers()) do
+        if target ~= player then
+            local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+            local rHand = player.Character and player.Character:FindFirstChild("RightHand")
+            local lHand = player.Character and player.Character:FindFirstChild("LeftHand")
             
-            -- Запускаем ОДНОВРЕМЕННО 3 потока для гарантии
-            table.insert(punchThreads, task.spawn(hyperPunch))
-            table.insert(punchThreads, task.spawn(hyperPunch))
-            table.insert(punchThreads, task.spawn(hyperPunch))
-            
-            -- Автовоскрешение
-            player.CharacterAdded:Connect(function()
-                if punchActive then
-                    task.wait(0.1)  -- Экстренное восстановление
-                    table.insert(punchThreads, task.spawn(hyperPunch))
-                end
-            end)
+ if root and rHand and lHand then
+                firetouchinterest(rHand, root, 1)
+                firetouchinterest(lHand, root, 1)
+                firetouchinterest(rHand, root, 0)
+                firetouchinterest(lHand, root, 0)
+            end
         end
     end
-})
+end
+
 local autoKill = false
 local connection = nil
 
@@ -627,21 +639,110 @@ local Toggle7 = Tabs.Main:AddToggle("MyToggle",
 end
 })
 
-local Toggle25 = Tabs.Main:AddToggle("MyToggle", 
-{
-    Title = "Auto Good Karma", 
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Auto Kill Evil Karma (Bad)
+local ToggleEvil = Tabs.Main:AddToggle("EvilKarmaToggle", {
+    Title = "Auto Kill Evil Karma", 
     Default = false,
     Callback = function(state)
-      --С„СѓРЅРєС†РёСЏ
+        local autoKillEvil = state
+        
+        if autoKillEvil then
+            local evilConnection
+            evilConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                local localPlayer = Players.LocalPlayer
+                if not localPlayer or not localPlayer.Character then return end
+                
+                local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if not humanoidRootPart then return end
+                
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= localPlayer and player.Character then
+                        local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                        local karma = player.Character:FindFirstChild("EvilKarma")
+                        
+                        if targetRoot and karma and karma.Value > 0 then
+                            humanoidRootPart.CFrame = CFrame.new(targetRoot.Position + Vector3.new(0, 0, 3))
+                            local muscleEvent = ReplicatedStorage:FindFirstChild("muscleEvent")
+                            if muscleEvent then
+                                muscleEvent:FireServer("punch", "rightHand")
+                                task.wait(0.1)
+                                muscleEvent:FireServer("punch", "leftHand")
+                            end
+                        end
+                    end
+                end
+            end)
+            
+            -- Обработчик возрождения
+            Players.LocalPlayer.CharacterAdded:Connect(function()
+                if autoKillEvil then
+                    task.wait(1)
+                    evilConnection:Disconnect()
+                    evilConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                        -- Повторяем логику атаки
+                    end)
+                end
+            end)
+        else
+            if evilConnection then
+                evilConnection:Disconnect()
+            end
+        end
     end
 })
 
-local Toggle26 = Tabs.Main:AddToggle("MyToggle", 
-{
-    Title = "Auto Bad Karma", 
+-- Auto Kill Good Karma (Good)
+local ToggleGood = Tabs.Main:AddToggle("GoodKarmaToggle", {
+    Title = "Auto Kill Good Karma", 
     Default = false,
     Callback = function(state)
-      --С„СѓРЅРєС†РёСЏ
+        local autoKillGood = state
+        
+        if autoKillGood then
+            local goodConnection
+            goodConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                local localPlayer = Players.LocalPlayer
+                if not localPlayer or not localPlayer.Character then return end
+                
+                local humanoidRootPart = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if not humanoidRootPart then return end
+                
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= localPlayer and player.Character then
+                        local targetRoot = player.Character:FindFirstChild("HumanoidRootPart")
+                        local karma = player.Character:FindFirstChild("GoodKarma")
+                        
+                        if targetRoot and karma and karma.Value > 0 then
+                            humanoidRootPart.CFrame = CFrame.new(targetRoot.Position + Vector3.new(0, 0, 3))
+                            local muscleEvent = ReplicatedStorage:FindFirstChild("muscleEvent")
+                            if muscleEvent then
+                                muscleEvent:FireServer("punch", "rightHand")
+                                task.wait(0.1)
+                                muscleEvent:FireServer("punch", "leftHand")
+                            end
+                        end
+                    end
+                end
+            end)
+            
+            -- Обработчик возрождения
+            Players.LocalPlayer.CharacterAdded:Connect(function()
+                if autoKillGood then
+                    task.wait(1)
+                    goodConnection:Disconnect()
+                    goodConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                        -- Повторяем логику атаки
+                    end)
+                end
+            end)
+        else
+            if goodConnection then
+                goodConnection:Disconnect()
+            end
+        end
     end
 })
 
@@ -2088,6 +2189,100 @@ Tabs.Misc:AddButton({
     Title = "Anti-AFK",
     Callback = function()
       loadstring(game:HttpGet("https://pastefy.app/ae6M4qA7/raw"))()  
+    end
+})
+
+local Toggle25 = Tabs.Misc:AddToggle("AutoSpinWheel", 
+{
+    Title = "Auto Spin Wheel", 
+    Description = "Автоматически крутит колесо фортуны",
+    Default = false,
+    Callback = function(state)
+        _G.AutoSpinWheel = state
+        
+        if state then
+            spawn(function()
+                while _G.AutoSpinWheel and wait(1) do
+                    game:GetService("ReplicatedStorage").rEvents.openFortuneWheelRemote:InvokeServer("openFortuneWheel", game:GetService("ReplicatedStorage").fortuneWheelChances["Fortune Wheel"])
+                end
+            end)
+        end
+    end 
+})
+
+local Toggle26 = Tabs.Misc:AddToggle("AntiKnockback", 
+{
+    Title = "Anti Knockback", 
+    Description = "Защищает от отбрасывания (не замораживает при выключении)",
+    Default = false,
+    Callback = function(state)
+        _G.AntiKnockback = state
+        
+        if state then
+            spawn(function()
+                while _G.AntiKnockback do
+                    local player = game.Players.LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local rootPart = character:WaitForChild("HumanoidRootPart")
+                    
+                    -- Удаляем старый BodyVelocity, если он есть
+                    local existingVelocity = rootPart:FindFirstChild("BodyVelocity")
+                    if existingVelocity then
+                        existingVelocity:Destroy()
+                    end
+                    
+                    -- Создаем новый BodyVelocity, но с учетом текущей скорости
+                    local bodyVelocity = Instance.new("BodyVelocity")
+                    bodyVelocity.MaxForce = Vector3.new(100000, 0, 100000)
+                    bodyVelocity.Velocity = rootPart.AssemblyLinearVelocity -- Сохраняем текущую скорость
+                    bodyVelocity.P = 1250
+                    bodyVelocity.Parent = rootPart
+                    
+                    -- Обновляем скорость в реальном времени
+                    game:GetService("RunService").Heartbeat:Connect(function()
+                        if not _G.AntiKnockback or not bodyVelocity or not bodyVelocity.Parent then
+                            return
+                        end
+                        bodyVelocity.Velocity = rootPart.AssemblyLinearVelocity
+                    end)
+                    
+                    -- Ждем смерти или отключения
+                    player.CharacterAdded:Wait()
+                    if not _G.AntiKnockback then break end
+                end
+            end)
+        else
+            -- При отключении просто удаляем BodyVelocity, не сбрасывая скорость
+            local player = game.Players.LocalPlayer
+            if player.Character then
+                local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+                if rootPart then
+                    local existingVelocity = rootPart:FindFirstChild("BodyVelocity")
+                    if existingVelocity then
+                        existingVelocity:Destroy()
+                    end
+                end
+            end
+        end
+    end 
+})
+
+local Toggle27 = Tabs.Misc:AddToggle("AutoClaimGiftsToggle", 
+{
+    Title = "Auto Claim Gifts", 
+    Default = false,
+    Callback = function(state)
+        _G.AutoClaimGifts = state
+        
+        if state then
+            spawn(function()
+                while _G.AutoClaimGifts and wait(1) do
+                    for i = 1, 8 do
+                        game:GetService("ReplicatedStorage").rEvents.freeGiftClaimRemote:InvokeServer("claimGift", i)
+                    end
+                end
+            end)
+        end
     end
 })
 
